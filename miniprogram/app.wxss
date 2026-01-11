@@ -1,0 +1,6 @@
+/** app.wxss */
+page {
+  background-color: #000000;
+  color: #00ff00; /* Amadeus Green */
+  font-family: "Courier New", Courier, monospace;
+}

@@ -1,0 +1,103 @@
+<!-- index.wxml -->
+<view class="container">
+  <!-- 角色展示背景层 -->
+  <view class="character-background">
+    <!-- Camera for Vision (Hidden or Preview) -->
+    <camera 
+      class="camera-layer"
+      device-position="back" 
+      flash="off" 
+      binderror="error" 
+      style="display: {{showCamera ? 'block' : 'none'}};"
+    ></camera>
+    
+    <!-- 角色展示区域（支持后续的情绪画面/动画） -->
+    <view class="character-display" wx:if="{{!showCamera}}">
+      <!-- 角色图片/动画容器 -->
+      <view class="character-container" style="opacity: {{characterOpacity}};">
+        <image 
+          class="character-image" 
+          src="/assets/amadeus_logo.png" 
+          mode="aspectFit"
+          style="filter: {{characterFilter}};"
+        ></image>
+        <!-- 预留：情绪动画层 -->
+        <view class="emotion-overlay emotion-{{characterEmotion}}"></view>
+      </view>
+      
+      <!-- 背景渐变遮罩 -->
+      <view class="background-overlay"></view>
+    </view>
+  </view>
+
+  <!-- 聊天内容层（浮在背景上） -->
+  <view class="chat-wrapper" style="padding-bottom: {{showMorePanel ? '300rpx' : '0'}};">
+    <!-- 聊天记录区域 -->
+    <scroll-view 
+      class="chat-area" 
+      scroll-y="true" 
+      scroll-into-view="{{toView}}"
+      bindtap="closePanels"
+    >
+      <view class="chat-messages">
+        <block wx:for="{{messages}}" wx:key="id">
+          <view class="message {{item.role === 'user' ? 'user-message' : 'amadeus-message'}}" id="msg-{{index}}">
+            <text class="message-text" wx:if="{{!item.image}}">{{item.content}}</text>
+            <image wx:if="{{item.image}}" src="{{item.image}}" mode="widthFix" class="message-image"></image>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+
+    <!-- 底部控制栏 -->
+    <view class="control-bar {{showMorePanel ? 'panel-open' : ''}}">
+      <!-- 语音/键盘 切换按钮 (已移除) -->
+      
+      <!-- 输入区域 -->
+      <view class="input-container">
+        <!-- 文本输入框 -->
+        <input 
+          class="input-box" 
+          type="text"
+          confirm-type="send"
+          bindconfirm="sendMessage" 
+          value="{{inputValue}}" 
+          bindinput="handleInput"
+          bindfocus="onInputFocus"
+          cursor-spacing="20"
+        />
+      </view>
+
+      <!-- 表情按钮 (占位) -->
+      <view class="icon-btn" bindtap="toggleEmoji">
+        <text class="icon">☺</text>
+      </view>
+
+      <!-- 更多功能 (+) 按钮 (仅在没有输入文本时显示) -->
+      <view class="icon-btn" bindtap="toggleMorePanel" wx:if="{{inputValue.length === 0}}">
+        <text class="icon {{showMorePanel ? 'active' : ''}}">⊕</text>
+      </view>
+      
+      <!-- 发送按钮 (仅在输入文本时显示) -->
+      <view class="send-btn-wrapper" wx:if="{{inputValue.length > 0}}">
+        <button class="btn-send-mini" bindtap="sendMessage">发送</button>
+      </view>
+    </view>
+
+    <!-- 拓展功能面板 (相册/相机/视频) -->
+    <view class="more-panel" wx:if="{{showMorePanel}}">
+      <view class="panel-item" bindtap="handleChooseMedia" data-type="image">
+        <view class="panel-icon">🖼️</view>
+        <text class="panel-text">相册</text>
+      </view>
+      <view class="panel-item" bindtap="handleChooseMedia" data-type="camera">
+        <view class="panel-icon">📷</view>
+        <text class="panel-text">拍摄</text>
+      </view>
+      <view class="panel-item" bindtap="handleVideoCall">
+        <view class="panel-icon">📹</view>
+        <text class="panel-text">视频通话</text>
+      </view>
+    </view>
+  </view>
+</view>

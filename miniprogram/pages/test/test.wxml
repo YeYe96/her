@@ -1,0 +1,36 @@
+<view class="test-container">
+  <text class="title">Amadeus 输入测试页面</text>
+  
+  <view class="test-section">
+    <text class="label">测试1: 简单输入框</text>
+    <input 
+      class="simple-input" 
+      placeholder="点击这里输入测试文字"
+      bindinput="onSimpleInput"
+      value="{{simpleValue}}"
+    />
+    <text class="result">输入内容: {{simpleValue || '(未输入)'}}</text>
+  </view>
+
+  <view class="test-section">
+    <text class="label">测试2: 按钮点击</text>
+    <button class="test-button" bindtap="onTestClick">点击测试按钮</button>
+    <text class="result">点击次数: {{clickCount}}</text>
+  </view>
+
+  <view class="test-section">
+    <text class="label">测试3: 发送消息</text>
+    <input 
+      class="chat-input" 
+      placeholder="输入消息"
+      bindinput="onChatInput"
+      value="{{chatValue}}"
+    />
+    <button class="send-button" bindtap="onSendTest">发送</button>
+    <text class="result">{{sendResult}}</text>
+  </view>
+
+  <view class="test-section">
+    <button class="back-button" bindtap="goBack">返回主页</button>
+  </view>
+</view>
