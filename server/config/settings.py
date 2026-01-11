@@ -27,7 +27,7 @@ class Settings:
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     
     # 使用的模型名称
-    MODEL_NAME: str = os.getenv("MODEL_NAME", "qwen3-vl")
+    MODEL_NAME: str = os.getenv("MODEL_NAME", "qwen3-vl:latest")
     
     # ==================== 服务配置 ====================
     # API 监听地址

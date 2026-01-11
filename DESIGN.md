@@ -194,6 +194,33 @@ server/core/
 └── time_context.py     # ⑤ 时间感知 (规划中)
 ```
 
+
+### 4.5 人格持久化策略 (System Prompt Strategy)
+
+#### 1. 动态 Prompt 分流机制 (Dynamic Branching)
+
+为了防止 LLM 在长对话中出现“复读机”现象（重复自我介绍/动作描写），将 System Prompt 拆分为两套：
+
+*   **A. 启动模式 (Full Persona)**
+    *   **触发条件**: `history_count == 0`
+    *   **内容**: 包含完整的人设背景、性格定义、开场白、世界观。
+    *   **作用**: 建立初始印象，定调。
+
+*   **B. 沉浸模式 (Immersive Persona)**
+    *   **触发条件**: `history_count > 0`
+    *   **内容**: 仅包含极简指令（“保持人设”、“禁止重复介绍”、“简短回复”）。
+    *   **原理**: 依靠 LLM 的 In-Context Learning 能力，模仿上方 Conversation History 的语调继续对话。
+
+#### 2. 核心记忆注入 (Anti-Amnesia Injection)
+
+为了防止在 **沉浸模式** 下 Prompt 过短导致“忘记用户是谁”，必须强制注入关键上下文。
+
+*   **实现方式**: 从 `user_profile.json` 读取核心字段，在 Prompt 头部动态插入：
+    ```text
+    [核心记忆] 用户名：{user_name}，关系：{relation}
+    ```
+*   **目的**: 确保无论对话进行到第几轮（即使被滑动窗口截断），红莉栖的灵魂深处永远记得用户的身份。
+
 ## 5. 目录结构
 
 ```
@@ -253,6 +280,55 @@ amadeus/
 - [ ] Edge-TTS / GPT-SoVITS 语音
 - [ ] 情绪系统 (根据心情换立绘)
 - [ ] 多角色支持
+
+## 📝 开发待办清单 (Sprint 1: 灵魂注入 & 性能双以此)
+
+> **核心目标**: 实现**秒级响应**（快慢双脑）、**真实记忆**（持久化）与**生物属性**（睡眠/情绪）。
+
+### 1. 🧠 双脑架构 (Dual-Brain Architecture)
+*   [ ] **模型路由系统 (Cortex Router)**
+    *   **文件**: `server/core/ai_service.py`
+    *   **逻辑**: 
+        *   **快脑 (Wernicke Area)**: 默认调用 `qwen3:8b` (纯文本)，实现 <800ms 极速回复。
+        *   **慢脑 (Visual Cortex)**: 检测到 `image_base64` 时，切换至 `qwen3 vl` (多模态)，进行深度视觉分析。
+    *   **配置**: 在 `settings.py` 中分离 `TEXT_MODEL` 和 `VISION_MODEL`。
+*   [ ] **Prompt 动态分流 (Prompt Engine)**
+    *   **逻辑**:
+        *   `history == 0` → 调用 `Full Persona` (完整人设，建立印象)。
+        *   `history > 0` → 调用 `Immersive Persona` (极简指令) + `Anti-Amnesia` (记忆注入)。
+    *   **目的**: 根除"复读机"现象，同时保证她永远记得你是谁。
+*   [ ] **模型预热 (Warmup Request)**
+    *   **逻辑**: 服务启动时向快脑发送一个空包，避免首个用户请求遭遇冷启动延迟。
+
+### 2. 🕰️ 生物钟与感知 (Bio-Rhythm)
+*   [ ] **时间感知注入 (Temporal Awareness)**
+    *   **逻辑**: 获取 `datetime.now()`，根据时间段强制注入 System Prompt 前缀：
+        *   **01:00-06:00 (REM Sleep)**: "被吵醒的怨气模式"，强制简短回复，催促睡觉。
+        *   **08:00-18:00 (Research Mode)**: "严谨模式"，倾向于使用更复杂的科学类比。
+        *   **18:00-23:00 (Relax Mode)**: "放松模式"，傲娇度降低，更愿意聊日常。
+*   [ ] **久别重逢 (Reunion Logic)**
+    *   **逻辑**: 记录 `last_interaction_time`。若间隔 > 24h，第一句回复必须包含："哈？终于想起实验室了吗？"
+
+### 3. 💾 海马体升级 (Hippocampus Upgrade)
+*   [ ] **记忆持久化 (Persistence)**
+    *   **动作**: 将内存中的 `history` 列表实时写入没有任何数据库依赖的 `data/chat_history.json`。
+    *   **目标**: 即使服务器重启/崩溃，再次启动时她依然记得刚才聊了什么。
+*   [ ] **记忆压缩 (Consolidation)**
+    *   **逻辑**: 当对话累计 > 50 轮，触发后台任务：
+        *   使用"快脑"总结前 30 轮的摘要。
+        *   将摘要存入 `long_term_memory`。
+        *   清空原始对话以释放 Token 上限。
+
+### 4. 🎭 情感引擎 (Emotion Engine v1.0)
+*   [ ] **思维链显性化 (<thinking>)**
+    *   **优化**: 强制思维链输出当前的 **[Mood Score: 0-100]**（怒气/羞耻度）。
+    *   **用途**: 后续用于前端根据分值自动切换立绘（例如：羞耻度>80 -> 脸红立绘）。
+
+### 5. 🖥️ 前端交互增强 (Mini-program)
+*   [ ] **输入状态反馈**
+    *   **UI**: 当后端调用"慢脑"处理图片时，顶部显示 "Analyzing visual data..." 而不是通用的 "Typing..."。
+*   [ ] **打字机效果**
+    *   **UI**: 模拟文字逐个蹦出的效果，配合"快脑"的高速生成，提升沉浸感。
 
 ---
 
