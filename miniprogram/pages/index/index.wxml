@@ -1,36 +1,24 @@
 <!-- index.wxml -->
 <view class="container">
-  <!-- 角色展示背景层 -->
-  <view class="character-background">
-    <!-- Camera for Vision (Hidden or Preview) -->
-    <camera 
-      class="camera-layer"
-      device-position="back" 
-      flash="off" 
-      binderror="error" 
-      style="display: {{showCamera ? 'block' : 'none'}};"
-    ></camera>
-    
-    <!-- 角色展示区域（支持后续的情绪画面/动画） -->
-    <view class="character-display" wx:if="{{!showCamera}}">
-      <!-- 角色图片/动画容器 -->
-      <view class="character-container" style="opacity: {{characterOpacity}};">
-        <image 
-          class="character-image" 
-          src="/assets/amadeus_logo.png" 
-          mode="aspectFit"
-          style="filter: {{characterFilter}};"
-        ></image>
-        <!-- 预留：情绪动画层 -->
-        <view class="emotion-overlay emotion-{{characterEmotion}}"></view>
-      </view>
-      
-      <!-- 背景渐变遮罩 -->
-      <view class="background-overlay"></view>
-    </view>
+  <!-- 层级 1: 场景背景层 (Scene Layer) -->
+  <view class="scene-layer">
+    <image 
+      class="scene-image" 
+      src="{{visual.scene}}" 
+      mode="aspectFill"
+    ></image>
+    <!-- 视觉滤镜层 -->
+    <view class="visual-filter" style="backdrop-filter: {{visual.filter}};"></view>
   </view>
 
-  <!-- 聊天内容层（浮在背景上） -->
+  <!-- 层级 2: 角色立绘层 (Character Layer) - 预留 -->
+  <!-- 
+  <view class="character-layer">
+    <image class="character-body" src="{{visual.character.body}}" mode="aspectFit"></image>
+  </view>
+  -->
+
+  <!-- 层级 3: 聊天交互层 (UI Layer) -->
   <view class="chat-wrapper" style="padding-bottom: {{showMorePanel ? '300rpx' : '0'}};">
     <!-- 聊天记录区域 -->
     <scroll-view 
@@ -51,14 +39,14 @@
 
     <!-- 底部控制栏 -->
     <view class="control-bar {{showMorePanel ? 'panel-open' : ''}}">
-      <!-- 语音/键盘 切换按钮 (已移除) -->
-      
       <!-- 输入区域 -->
       <view class="input-container">
         <!-- 文本输入框 -->
         <input 
           class="input-box" 
           type="text"
+          placeholder="输入消息..."
+          placeholder-class="input-placeholder"
           confirm-type="send"
           bindconfirm="sendMessage" 
           value="{{inputValue}}" 
@@ -84,7 +72,7 @@
       </view>
     </view>
 
-    <!-- 拓展功能面板 (相册/相机/视频) -->
+    <!-- 拓展功能面板 (相册/相机) -->
     <view class="more-panel" wx:if="{{showMorePanel}}">
       <view class="panel-item" bindtap="handleChooseMedia" data-type="image">
         <view class="panel-icon">🖼️</view>
@@ -93,10 +81,6 @@
       <view class="panel-item" bindtap="handleChooseMedia" data-type="camera">
         <view class="panel-icon">📷</view>
         <text class="panel-text">拍摄</text>
-      </view>
-      <view class="panel-item" bindtap="handleVideoCall">
-        <view class="panel-icon">📹</view>
-        <text class="panel-text">视频通话</text>
       </view>
     </view>
   </view>

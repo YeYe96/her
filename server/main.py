@@ -4,8 +4,10 @@ Amadeus System - FastAPI 应用入口
 主应用文件，配置中间件、路由和启动事件。
 """
 
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
@@ -74,6 +76,12 @@ app.add_middleware(
 # ==================== 路由注册 ====================
 
 app.include_router(api_router)
+
+
+
+# 静态文件服务 (解决小程序包体积限制)
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # ==================== 开发服务器入口 ====================

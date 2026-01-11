@@ -9,25 +9,38 @@ Page({
         showCamera: false,
         toView: 'msg-0',
         inputFocus: false,
-        // 角色状态（用于后续的情绪展示）
-        characterEmotion: 'normal', // normal, happy, thinking, surprised, etc.
-        characterOpacity: 1.0,
-        characterFilter: 'blur(2px)',
 
-        // 新增 UI 状态
-        showMorePanel: false // 是否显示更多功能面板
+        // 视觉系统状态
+        visual: {
+            scene: '', // 背景图 (动态加载)
+            character: {
+                body: '',
+                opacity: 1.0,
+                scale: 1.0
+            },
+            filter: 'none'
+        },
+
+        // UI 状态
+        showMorePanel: false
     },
 
     onLoad() {
-        this.ctx = wx.createCameraContext()
+        this.ctx = wx.createCameraContext();
+
+        // 动态加载背景图 (解决 2MB 包大小限制)
+        const baseUrl = app.globalData.baseUrl;
+        this.setData({
+            'visual.scene': `${baseUrl}/static/character/kurisu.png`
+        });
     },
 
-    // 切换 (+) 更多功能面板的显示/隐藏
+    // 切换更多功能面板
     toggleMorePanel() {
         const isOpening = !this.data.showMorePanel;
         this.setData({
             showMorePanel: isOpening,
-            inputFocus: false // 打开面板时收起键盘
+            inputFocus: false
         });
 
         if (isOpening) {
@@ -52,7 +65,7 @@ Page({
 
     // 处理媒体选择 (相册/相机)
     handleChooseMedia(e) {
-        const type = e.currentTarget.dataset.type; // 'image' 或 'camera'
+        const type = e.currentTarget.dataset.type;
         const sourceType = type === 'camera' ? ['camera'] : ['album'];
 
         wx.chooseMedia({
@@ -68,16 +81,7 @@ Page({
         });
     },
 
-    // 视频通话占位符
-    handleVideoCall() {
-        wx.showToast({
-            title: '视频通话功能正在接入',
-            icon: 'none'
-        });
-        this.setData({ showMorePanel: false });
-    },
-
-    // 发送图片消息逻辑
+    // 发送图片消息
     sendImageMessage(tempFilePath) {
         const newMsg = {
             id: Date.now(),
@@ -87,7 +91,6 @@ Page({
         };
         this.updateMessages(newMsg);
 
-        // 读取文件并发送给后端
         wx.getFileSystemManager().readFile({
             filePath: tempFilePath,
             encoding: 'base64',
@@ -106,7 +109,7 @@ Page({
     onInputFocus(e) {
         this.setData({
             inputFocus: true,
-            showMorePanel: false // 键盘弹出时关闭功能面板
+            showMorePanel: false
         });
         this.scrollToBottom();
     },
@@ -126,7 +129,7 @@ Page({
         const content = this.data.inputValue;
         if (!content) {
             wx.showToast({
-                title: 'Cannot send empty message',
+                title: '请输入消息',
                 icon: 'none'
             });
             return;
@@ -141,18 +144,19 @@ Page({
         const messages = this.data.messages.concat(newMsg);
         this.setData({
             messages,
-            inputValue: '', // 清空输入框
+            inputValue: '',
             toView: `msg-${messages.length - 1}`
         });
     },
 
     callBackend(text, imageBase64) {
-        // 发送消息时，显示"思考"状态
+        // 显示思考状态
         this.updateCharacterEmotion('thinking');
 
         wx.request({
             url: `${app.globalData.baseUrl}/chat`,
             method: 'POST',
+            timeout: 120000, // 2分钟超时
             data: {
                 text: text,
                 image_base64: imageBase64
@@ -164,12 +168,11 @@ Page({
                     toView: `msg-${this.data.messages.length}`
                 });
 
-                // 根据回复内容分析情绪
                 this.analyzeEmotionFromReply(res.data.reply || '');
             },
             fail: (err) => {
                 console.error(err);
-                const errMsg = { id: Date.now(), role: 'amadeus', content: 'Connection Error. Is Backend Running?' };
+                const errMsg = { id: Date.now(), role: 'amadeus', content: '连接错误，后端是否运行？' };
                 this.setData({
                     messages: this.data.messages.concat(errMsg)
                 });
@@ -178,25 +181,26 @@ Page({
         })
     },
 
-    // 语音录制相关 (已移除)
-
     // 更新角色情绪
     updateCharacterEmotion(emotion) {
-        this.setData({
-            characterEmotion: emotion
-        });
         switch (emotion) {
             case 'thinking':
-                this.setData({ characterOpacity: 0.8, characterFilter: 'blur(1px) brightness(0.9)' });
+                this.setData({
+                    'visual.character.opacity': 0.8,
+                    'visual.filter': 'blur(1px) brightness(0.9)'
+                });
                 break;
             case 'happy':
-                this.setData({ characterOpacity: 1.0, characterFilter: 'blur(1px) brightness(1.1)' });
-                break;
-            case 'surprised':
-                this.setData({ characterOpacity: 0.9, characterFilter: 'blur(0px) brightness(1.05)' });
+                this.setData({
+                    'visual.character.opacity': 1.0,
+                    'visual.filter': 'brightness(1.1)'
+                });
                 break;
             default:
-                this.setData({ characterOpacity: 1.0, characterFilter: 'blur(2px)' });
+                this.setData({
+                    'visual.character.opacity': 1.0,
+                    'visual.filter': 'none'
+                });
         }
     },
 
@@ -205,8 +209,6 @@ Page({
         const content = reply.toLowerCase();
         if (content.includes('哼') || content.includes('才不是')) {
             this.updateCharacterEmotion('happy');
-        } else if (content.includes('？') || content.includes('?') || content.includes('什么')) {
-            this.updateCharacterEmotion('surprised');
         } else {
             this.updateCharacterEmotion('normal');
         }
